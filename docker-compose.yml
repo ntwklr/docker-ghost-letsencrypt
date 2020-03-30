@@ -1,0 +1,57 @@
+version: '3'
+
+services:
+   db:
+     container_name: ${CONTAINER_DB_NAME}
+     image: mariadb:${DB_VERSION:-latest}
+     restart: unless-stopped
+     stop_grace_period: 45s
+     volumes:
+        - ghost-db-vol-1:/var/lib/mysql
+     environment:
+       TZ: ${TZ}
+       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+       MYSQL_DATABASE: ${DB_DATABASE}
+       MYSQL_USER: ${DB_USER}
+       MYSQL_PASSWORD: ${DB_PASSWORD}
+       MYSQL_INITDB_SKIP_TZINFO: 1
+
+   ghost:
+     depends_on:
+       - db
+     container_name: ${CONTAINER_GHOST_NAME}
+     image: ghost:3-alpine
+     restart: unless-stopped
+     volumes:
+       - ghost-web-vol-1:/var/lib/ghost
+     environment:
+       NODE_ENV: production
+       url: ${URL}
+       database__client: mysql
+       database__connection__host: ${CONTAINER_DB_NAME}
+       database__connection__database: ${DB_DATABASE}
+       database__connection__user: ${DB_USER}
+       database__connection__password: ${DB_PASSWORD}
+       mail__transport: ${MAIL_TRANSPORT}
+       mail__options__host: ${MAIL_OPTIONS_HOST}
+       mail__options__port: ${MAIL_OPTIONS_PORT}
+       mail__options__service: ${MAIL_OPTIONS_SERVICE}
+       mail__options__auth__user: ${MAIL_OPTIONS_AUTH_USER}
+       mail__options__auth__pass: ${MAIL_OPTIONS_AUTH_PASS}
+       mail__from: ${MAIL_FROM}
+       VIRTUAL_PORT: 2368
+       VIRTUAL_HOST: ${DOMAINS}
+       LETSENCRYPT_HOST: ${DOMAINS}
+       LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
+     logging:
+       options:
+         max-size: ${LOGGING_OPTIONS_MAX_SIZE:-200k}
+
+volumes:
+  ghost-web-vol-1:
+  ghost-db-vol-1:
+
+networks:
+    default:
+       external:
+         name: ${NETWORK}
